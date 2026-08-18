@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+
+# Models (large binaries) — download locally, never commit
+Models/**/*.gguf
+Models/**/*.safetensors
+Models/**/*.bin
+Models/**/*.pt
+Models/**/*.pth
+Models/**/*.ckpt
+Models/**/*.onnx
+
+# Outputs (generated audio)
+Outputs/**/*.wav
+Outputs/**/*.mp3
+Outputs/**/*.flac
+Outputs/**/*.ogg
+
+# ComfyUI clone (optional install)
+comfyui/
+ComfyUI/
+
+# System
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.local

@@ -1,0 +1,9 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+python-multipart>=0.0.9
+httpx>=0.27
+websockets>=12
+aiofiles>=23.2
+llama-cpp-python>=0.2.90
+huggingface_hub>=0.24
