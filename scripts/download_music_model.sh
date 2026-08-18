@@ -43,7 +43,7 @@ os.makedirs(target, exist_ok=True)
 def fetch(repo, filename):
     print(f"  ↓ {repo} :: {filename}")
     try:
-        path = hf_hub_download(repo_id=repo, filename=filename, local_dir=target, local_dir_use_symlinks=False)
+        path = hf_hub_download(repo_id=repo, filename=filename, local_dir=target)
         print(f"    -> {path}")
     except Exception as e:
         print(f"    !! failed: {e}", file=sys.stderr)

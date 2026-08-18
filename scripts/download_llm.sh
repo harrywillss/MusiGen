@@ -21,7 +21,7 @@ from huggingface_hub import hf_hub_download
 import os
 
 os.makedirs("$TARGET", exist_ok=True)
-path = hf_hub_download(repo_id="$REPO", filename="$FILE", local_dir="$TARGET", local_dir_use_symlinks=False)
+path = hf_hub_download(repo_id="$REPO", filename="$FILE", local_dir="$TARGET")
 print("  -> ", path)
 PY
 
