@@ -28,7 +28,7 @@ class Settings:
     llm_threads: int = int(os.getenv("MUSIGEN_LLM_THREADS", "0")) or None  # type: ignore[assignment]
 
     # Music
-    music_engine: str = os.getenv("MUSIGEN_MUSIC_ENGINE", "auto")  # auto|comfy|stub
+    music_engine: str = os.getenv("MUSIGEN_MUSIC_ENGINE", "auto")  # auto|comfy|musicgen|stub
     comfy_url: str = os.getenv("MUSIGEN_COMFY_URL", "http://127.0.0.1:8188")
 
     # Server

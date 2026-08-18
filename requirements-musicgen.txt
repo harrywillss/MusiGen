@@ -1,0 +1,9 @@
+# Optional deps for the MusicGen engine (Meta MusicGen via HuggingFace
+# transformers). Install with:
+#   source .venv/bin/activate
+#   pip install -r requirements-musicgen.txt
+# then pre-download the weights with ./scripts/download_musicgen.sh
+torch>=2.1
+transformers>=4.44
+scipy>=1.11
+sentencepiece>=0.2

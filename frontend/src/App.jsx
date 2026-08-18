@@ -135,6 +135,20 @@ export default function App() {
           <StatusStrip status={status} />
         </header>
 
+        {status?.music_engine?.name === 'stub' && (
+          <div className="stub-banner">
+            <div className="stub-banner__title">⚠ STUB MODE — placeholder audio</div>
+            <div className="stub-banner__body">
+              No real music model is loaded, so every generation is a synthesised
+              chord tone, not real music. Two ways to fix:
+              <ul>
+                <li><b>Fast path (recommended):</b> run <code>./scripts/download_musicgen.sh</code> in the project folder, then reload. This installs Meta MusicGen and actually makes beats.</li>
+                <li><b>Full MiniMax path:</b> run <code>./scripts/install_comfyui.sh</code>, download the missing text_encoder + vae, then start ComfyUI (<code>python main.py --port 8188</code> inside <code>ComfyUI/</code>).</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="grid">
           <PromptStudio
             key={reuseSeed?._ts || 'studio'}

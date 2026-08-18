@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from ..config import settings
 from ..engines.llm_engine import llm_engine
-from ..engines.music_engine import ComfyEngine, StubEngine, select_engine
+from ..engines.music_engine import ComfyEngine, MusicGenEngine, StubEngine, select_engine
 from ..prompts import STYLE_PRESETS, preset_names
 
 router = APIRouter(prefix="/api/system", tags=["system"])
@@ -60,8 +60,11 @@ class EngineBody(BaseModel):
 
 @router.post("/music/mode")
 def set_music_mode(body: EngineBody) -> dict:
-    if body.mode not in ("auto", "comfy", "stub"):
-        raise HTTPException(status_code=400, detail="mode must be auto|comfy|stub")
+    if body.mode not in ("auto", "comfy", "musicgen", "stub"):
+        raise HTTPException(
+            status_code=400,
+            detail="mode must be auto|comfy|musicgen|stub",
+        )
     settings.music_engine = body.mode
     return select_engine().status()
 
@@ -70,7 +73,8 @@ def set_music_mode(body: EngineBody) -> dict:
 def engines() -> dict:
     return {
         "current": select_engine().name,
-        "modes": ["auto", "comfy", "stub"],
+        "modes": ["auto", "comfy", "musicgen", "stub"],
         "comfy": ComfyEngine().status(),
+        "musicgen": MusicGenEngine().status(),
         "stub": StubEngine().status(),
     }

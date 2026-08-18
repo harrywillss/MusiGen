@@ -62,7 +62,7 @@ export default function SystemPanel({ status, onRefresh, toast }) {
           Music engine <span className="pixel-hint">{engine.name}</span>
         </div>
         <div className="row">
-          {['auto', 'comfy', 'stub'].map((m) => (
+          {['auto', 'comfy', 'musicgen', 'stub'].map((m) => (
             <button
               key={m}
               className={`pixel-btn ${status.config.music_engine_mode === m ? 'pixel-btn--primary' : ''}`}
@@ -74,13 +74,33 @@ export default function SystemPanel({ status, onRefresh, toast }) {
           ))}
         </div>
         <div className="pixel-hint" style={{ marginTop: 8 }}>
-          ComfyUI: {engine.reachable ? '● reachable' : '○ not reachable'} — {engine.base_url}
-          {engine.model_files && (
-            <div style={{ marginTop: 4 }}>
-              music: {engine.model_files.music_ckpt || '—'} · text_encoder:{' '}
-              {engine.model_files.text_encoder || '—'} · vae:{' '}
-              {engine.model_files.vae || '—'}
-            </div>
+          {engine.name === 'comfy' && (
+            <>
+              ComfyUI: {engine.reachable ? '● reachable' : '○ not reachable'} — {engine.base_url}
+              {engine.model_files && (
+                <div style={{ marginTop: 4 }}>
+                  music: {engine.model_files.music_ckpt || '—'} · text_encoder:{' '}
+                  {engine.model_files.text_encoder || '—'} · vae:{' '}
+                  {engine.model_files.vae || '—'}
+                </div>
+              )}
+            </>
+          )}
+          {engine.name === 'musicgen' && (
+            <>
+              MusicGen — {engine.loaded ? '● loaded' : '○ loads on first generate'}{' '}
+              · {engine.model_id} · {engine.device || 'device auto'}
+              {engine.load_error && (
+                <div style={{ color: 'var(--danger)', marginTop: 4 }}>{engine.load_error}</div>
+              )}
+            </>
+          )}
+          {engine.name === 'stub' && (
+            <>
+              Stub — synthesised placeholder audio, NOT real music.
+              Install a real engine: <code>./scripts/download_musicgen.sh</code> (quick)
+              or <code>./scripts/install_comfyui.sh</code> (full MiniMax setup).
+            </>
           )}
         </div>
       </div>

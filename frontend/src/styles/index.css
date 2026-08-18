@@ -564,6 +564,44 @@ audio {
   letter-spacing: 2px;
 }
 
+.stub-banner {
+  background: rgba(255, 61, 90, 0.16);
+  color: var(--ink);
+  padding: 14px 18px;
+  margin: 0 0 20px;
+  box-shadow: inset 0 0 0 4px var(--danger);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.stub-banner__title {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--danger);
+  margin-bottom: 6px;
+}
+.stub-banner__body ul { margin: 6px 0 0 18px; padding: 0; }
+.stub-banner__body li { margin-bottom: 4px; }
+.stub-banner code {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1px 6px;
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+}
+
+.card__badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 1px;
+  vertical-align: middle;
+}
+.card__badge--warn { background: var(--danger); color: var(--sky-1); }
+.card__badge--ok   { background: var(--neon-lime); color: var(--sky-1); }
+
 .toast-stack {
   position: fixed;
   right: 20px;

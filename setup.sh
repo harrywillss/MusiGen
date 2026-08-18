@@ -37,20 +37,23 @@ cat <<EOF
 ✔ Setup complete.
 
 Next steps:
-  1. (Optional) Download the music model:
-       ./scripts/download_music_model.sh
-     Env overrides:
-       QUANT=Q6_K REPO=Abiray/MiniMax-Music3-GGUF GGUF_FILE=MiniMax-Music3-Q6_K.gguf ./scripts/download_music_model.sh
-
-  2. Download the LLM copilot:
+  1. Download the LLM copilot (for prompt expansion / lyrics):
        ./scripts/download_llm.sh
 
-  3. (Optional) Install a local ComfyUI:
-       ./scripts/install_comfyui.sh
-     Then start it: cd ComfyUI && source .venv/bin/activate && python main.py --listen 127.0.0.1 --port 8188
+  2. Install a real music engine — pick ONE:
+       a) FAST — Meta MusicGen (real music, no ComfyUI needed):
+            ./scripts/download_musicgen.sh
+       b) FULL — MiniMax-Music3 via ComfyUI (more setup, higher quality):
+            ./scripts/download_music_model.sh
+            ./scripts/install_comfyui.sh
+            # then run ComfyUI on port 8188
 
-  4. Run the app:
+  3. Run the app:
        ./run.sh
+
+  If you skip step 2 entirely, the UI still works — but the audio you
+  get back will be a synthesised placeholder chord, NOT real music.
+  The app will show a big red banner reminding you.
 
   The web UI is at http://localhost:5173
   The API is at   http://localhost:8000

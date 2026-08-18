@@ -32,6 +32,15 @@ export default function Gallery({ outputs, onDelete, onReuse, toast }) {
           >
             <div className="card__title">
               {o.id} · {o.engine}
+              {o.engine === 'stub' && (
+                <span className="card__badge card__badge--warn">PLACEHOLDER</span>
+              )}
+              {o.engine === 'musicgen' && (
+                <span className="card__badge card__badge--ok">MUSICGEN</span>
+              )}
+              {o.engine === 'comfy' && (
+                <span className="card__badge card__badge--ok">MINIMAX</span>
+              )}
             </div>
             <div className="card__prompt">{o.prompt}</div>
             <div className="card__meta">

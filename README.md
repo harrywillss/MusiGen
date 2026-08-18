@@ -65,25 +65,51 @@ MusiGen/
 └── run.sh              Starts backend + frontend
 ```
 
-## Quick start
+## Music engines
+
+MusiGen supports three music engines, picked automatically in this order
+(you can also force one from the System panel):
+
+| Engine     | What it is                                              | Setup effort | Real music? |
+|------------|---------------------------------------------------------|--------------|-------------|
+| `comfy`    | MiniMax-Music3-GGUF running inside a local ComfyUI      | High         | Yes         |
+| `musicgen` | Meta MusicGen via `transformers` (CPU / MPS / CUDA)     | Low          | Yes         |
+| `stub`     | Synthesised placeholder chord, fallback for UI testing  | None         | **No**      |
+
+If you see a red "STUB MODE" banner in the UI, the app fell through to the
+placeholder — install one of the real engines below.
+
+## Quick start (fastest path to real music)
 
 ```bash
-# 1. Install everything (Python + Node deps)
+# 1. Install base deps (Python + Node)
 ./setup.sh
 
-# 2. Download models (choose sizes interactively)
-./scripts/download_music_model.sh
+# 2. Prompt copilot LLM
 ./scripts/download_llm.sh
 
-# 3. (Optional) Install ComfyUI locally, or point MUSIGEN_COMFY_URL
-#    at an existing ComfyUI instance
-./scripts/install_comfyui.sh
+# 3. Real music engine (MusicGen, ~1.2 GB, works on Mac / CPU / GPU)
+./scripts/download_musicgen.sh
 
 # 4. Run the app
 ./run.sh
 ```
 
 Open http://localhost:5173 and you're in.
+
+## Full path (MiniMax-Music3 via ComfyUI)
+
+Higher quality, more setup:
+
+```bash
+./scripts/download_music_model.sh          # MiniMax GGUF + companion files
+./scripts/install_comfyui.sh               # clone ComfyUI + ComfyUI-GGUF
+cd ComfyUI && source .venv/bin/activate && python main.py --port 8188
+```
+
+The backend auto-switches to `comfy` once ComfyUI is reachable and all
+three files (music GGUF + text encoder + VAE) are present under
+`Models/music/`.
 
 ## Config
 
