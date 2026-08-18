@@ -149,20 +149,46 @@ def build_workflow(
 
 
 def discover_model_files() -> dict[str, str | None]:
-    """Best-effort discovery of the three files required by the workflow."""
+    """Best-effort discovery of the three files required by the workflow.
+
+    Looks in the ComfyUI-shaped subfolders first (diffusion_models/,
+    text_encoders/, vae/) and falls back to the flat Models/music/ layout
+    for backwards compatibility.
+    """
     music_dir = settings.models_dir / "music"
 
-    def _pick(patterns: list[str]) -> str | None:
-        for pat in patterns:
-            hits = sorted(music_dir.glob(pat))
-            if hits:
-                return hits[0].name
+    def _pick(subdirs: list[str], patterns: list[str]) -> str | None:
+        for sub in subdirs:
+            base = music_dir / sub if sub else music_dir
+            if not base.exists():
+                continue
+            for pat in patterns:
+                hits = sorted(base.glob(pat))
+                if hits:
+                    return hits[0].name
         return None
 
     return {
-        "music_ckpt": _pick(["MiniMax-Music*.gguf", "*Music*.gguf", "*.gguf"]),
-        "text_encoder": _pick(
-            ["*text_encoder*.safetensors", "*t5*.safetensors", "*clip*.safetensors"]
+        "music_ckpt": _pick(
+            ["diffusion_models", ""],
+            ["MiniMax-Music*.gguf", "*minimax_music3_dit*.safetensors", "*Music*.gguf", "*.gguf"],
         ),
-        "vae": _pick(["*vae*.safetensors", "*VAE*.safetensors"]),
+        "text_encoder": _pick(
+            ["text_encoders", ""],
+            [
+                "*minimax_music3_text_encoder*.safetensors",
+                "*text_encoder*.safetensors",
+                "*t5*.safetensors",
+                "*clip*.safetensors",
+            ],
+        ),
+        "vae": _pick(
+            ["vae", ""],
+            [
+                "*minimax_music3_dav*.safetensors",
+                "*dav*.safetensors",
+                "*vae*.safetensors",
+                "*VAE*.safetensors",
+            ],
+        ),
     }

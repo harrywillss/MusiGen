@@ -1,31 +1,39 @@
 #!/usr/bin/env bash
-# Download the MiniMax-Music3 GGUF + companion text-encoder + VAE into
-# Models/music/. Requires the `huggingface_hub` python package (installed by
-# setup.sh) and a valid network connection.
+# Download the MiniMax-Music3 diffusion GGUF + companion text-encoder + VAE
+# into Models/music/, organised the way ComfyUI expects:
+#
+#   Models/music/
+#     ├── diffusion_models/   MiniMax-Music3-<quant>.gguf
+#     ├── text_encoders/      minimax_music3_text_encoder_bf16.safetensors
+#     └── vae/                minimax_music3_dav.safetensors
+#
+# The diffusion GGUF comes from Abiray/MiniMax-Music3-GGUF; the text encoder
+# and VAE come from Comfy-Org/MiniMax-Music-3 (the official ComfyUI repack).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TARGET="Models/music"
-mkdir -p "$TARGET"
+mkdir -p "$TARGET/diffusion_models" "$TARGET/text_encoders" "$TARGET/vae"
 
-# Default GGUF quant (change with env: QUANT=Q6_K)
+# --- Diffusion GGUF (Abiray) -----------------------------------------------
 QUANT="${QUANT:-Q8_0}"
-REPO="${REPO:-Abiray/MiniMax-Music3-GGUF}"
+GGUF_REPO="${GGUF_REPO:-Abiray/MiniMax-Music3-GGUF}"
 GGUF_FILE="${GGUF_FILE:-MiniMax-Music3-${QUANT}.gguf}"
 
-# Companion files usually referenced by the workflow (adjust if the upstream
-# repo names them differently)
-TE_REPO="${TE_REPO:-MiniMaxAI/MiniMax-Music3}"
-TE_FILE="${TE_FILE:-text_encoder.safetensors}"
-VAE_FILE="${VAE_FILE:-vae.safetensors}"
+# --- Text encoder + VAE (Comfy-Org repack) ---------------------------------
+# Text-encoder variants (bf16 = highest quality, pruned/int8 = smaller):
+#   minimax_music3_text_encoder_bf16.safetensors             ~ full
+#   minimax_music3_text_encoder_pruned_bf16.safetensors      ~ trimmed
+#   minimax_music3_text_encoder_pruned_int8_convrot.safetensors  smallest
+TE_REPO="${TE_REPO:-Comfy-Org/MiniMax-Music-3}"
+TE_FILE="${TE_FILE:-text_encoders/minimax_music3_text_encoder_bf16.safetensors}"
+VAE_FILE="${VAE_FILE:-vae/minimax_music3_dav.safetensors}"
 
-echo "▶ MusiGen: downloading music model"
-echo "  repo:        $REPO"
-echo "  gguf file:   $GGUF_FILE  (quant=$QUANT)"
-echo "  te repo:     $TE_REPO"
-echo "  te file:     $TE_FILE"
-echo "  vae file:    $VAE_FILE"
-echo "  destination: $TARGET"
+echo "▶ MusiGen: downloading MiniMax-Music3 assets"
+echo "  destination:    $TARGET"
+echo "  diffusion gguf: $GGUF_REPO :: $GGUF_FILE"
+echo "  text encoder:   $TE_REPO   :: $TE_FILE"
+echo "  vae:            $TE_REPO   :: $VAE_FILE"
 echo
 
 if ! command -v python3 >/dev/null 2>&1; then
@@ -35,36 +43,67 @@ fi
 
 python3 - <<PY
 from huggingface_hub import hf_hub_download
-import os, sys, shutil
+from pathlib import Path
+import sys, shutil, os
 
-target = "$TARGET"
-os.makedirs(target, exist_ok=True)
+target = Path("$TARGET")
+plans = [
+    ("$GGUF_REPO", "$GGUF_FILE",  target / "diffusion_models"),
+    ("$TE_REPO",   "$TE_FILE",    target / "text_encoders"),
+    ("$TE_REPO",   "$VAE_FILE",   target / "vae"),
+]
 
-def fetch(repo, filename):
+failed = []
+for repo, filename, dest in plans:
+    dest.mkdir(parents=True, exist_ok=True)
     print(f"  ↓ {repo} :: {filename}")
     try:
-        path = hf_hub_download(repo_id=repo, filename=filename, local_dir=target)
-        print(f"    -> {path}")
+        path = hf_hub_download(repo_id=repo, filename=filename, local_dir=str(dest))
+        # hf_hub_download preserves the filename's subfolder inside local_dir
+        # (e.g. text_encoders/foo.safetensors under our text_encoders/ target).
+        # Flatten it so downstream code doesn't need to know.
+        p = Path(path)
+        if p.parent != dest:
+            new = dest / p.name
+            if new.exists():
+                new.unlink()
+            shutil.move(str(p), str(new))
+            # remove now-empty intermediate dir(s)
+            try:
+                p.parent.rmdir()
+            except OSError:
+                pass
+            print(f"    -> {new}")
+        else:
+            print(f"    -> {p}")
     except Exception as e:
         print(f"    !! failed: {e}", file=sys.stderr)
-        return False
-    return True
+        failed.append((repo, filename))
 
-ok = True
-ok &= fetch("$REPO", "$GGUF_FILE")
-# text encoder + vae are best-effort — different community repos name them
-# differently, so failure here is not fatal
-for alt in ("$TE_FILE", "text_encoder/model.safetensors", "clip/model.safetensors"):
-    if fetch("$TE_REPO", alt):
-        break
-for alt in ("$VAE_FILE", "vae/diffusion_pytorch_model.safetensors"):
-    if fetch("$TE_REPO", alt):
-        break
+# Migrate a legacy top-level GGUF (from earlier runs of this script) into
+# diffusion_models/ so ComfyUI's folder discovery still finds it.
+legacy = list(target.glob("*.gguf"))
+for old in legacy:
+    new = target / "diffusion_models" / old.name
+    if not new.exists():
+        shutil.move(str(old), str(new))
+        print(f"  ↺ moved legacy {old.name} -> diffusion_models/")
+
+# Sweep away any now-empty leftover dirs from earlier failed runs
+for junk in ("text_encoder", "clip"):
+    p = target / junk
+    if p.exists() and p.is_dir() and not any(p.iterdir()):
+        p.rmdir()
 
 print()
-print("done." if ok else "some downloads failed — see notes above.")
+if failed:
+    print("Some downloads failed:", file=sys.stderr)
+    for r, f in failed:
+        print(f"  - {r} :: {f}", file=sys.stderr)
+    sys.exit(1)
+print("✔ all files downloaded")
 PY
 
 echo
 echo "Files now in $TARGET:"
-ls -lh "$TARGET"
+find "$TARGET" -type f -exec ls -lh {} +

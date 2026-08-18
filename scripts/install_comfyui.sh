@@ -30,9 +30,20 @@ fi
 # line here. As of writing the node lives inside forks or the ComfyUI-GGUF
 # extension itself; users may need to install a workflow-specific node.
 
-# Link Models/ so we don't duplicate weights
+# Link our Models/music/{diffusion_models,text_encoders,vae} into ComfyUI's
+# own models/ tree so it discovers them without duplicating weights on disk.
 mkdir -p models/diffusion_models models/text_encoders models/vae
-ln -sfn "$(pwd)/../Models/music" models/musigen-music
+MUSIGEN_MUSIC="$(cd .. && pwd)/Models/music"
+for sub in diffusion_models text_encoders vae; do
+  if [[ -d "$MUSIGEN_MUSIC/$sub" ]]; then
+    # Link the *contents* rather than the parent so ComfyUI can also see
+    # anything the user drops in later.
+    for f in "$MUSIGEN_MUSIC/$sub"/*; do
+      [[ -e "$f" ]] || continue
+      ln -sfn "$f" "models/$sub/$(basename "$f")"
+    done
+  fi
+done
 popd >/dev/null
 
 echo "✔ ComfyUI is ready at ./ComfyUI"
