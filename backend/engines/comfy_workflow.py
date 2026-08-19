@@ -1,9 +1,26 @@
-"""Template ComfyUI workflow for MiniMax-Music3-GGUF.
+"""Template ComfyUI workflow for MiniMax-Music3.
 
-We keep the workflow minimal and configurable. The exact node ids/types match
-the community reference workflow used with the ComfyUI-GGUF and
-ComfyUI-MiniMax-Music custom nodes; users can override this with their own
-workflow JSON by dropping a file at Models/music/workflow.json.
+Built from the official Comfy-Org workflow_templates entry
+`audio_minimax_music_3.json` (Aug 2026). The real node types are:
+
+  * UNETLoader (safetensors) or UnetLoaderGGUF (from ComfyUI-GGUF, for .gguf)
+  * CLIPLoader with type="minimax"
+  * VAELoader
+  * MiniMaxMusic3TextEncode         ← the caption/lyrics/seed encoder
+  * ConditioningZeroOut             ← negative = zeroed positive
+  * EmptyMiniMaxMusic3LatentAudio   ← empty audio latent of N seconds
+  * KSampler (defaults: 30 steps, cfg 1.7, sampler euler, scheduler simple)
+  * VAEDecodeAudio                  ← latent → AUDIO
+  * SaveAudioAdvanced               ← writes flac/mp3 into ComfyUI/output
+
+The MiniMax node signature (as of ComfyUI 0.33):
+  inputs:  clip (CLIP), caption (STRING), lyrics (STRING),
+           seed (INT), max_duration (FLOAT)
+  outputs: CONDITIONING, seconds (FLOAT)
+
+Users can drop `Models/music/workflow.json` (ComfyUI API-format JSON —
+Save > "Save (API Format)" in the ComfyUI web UI) to override this template
+with their own workflow; simple $VAR replacements in that file are honoured.
 """
 from __future__ import annotations
 
@@ -28,41 +45,60 @@ def _default_workflow(
     sampler_name: str,
     scheduler: str,
     output_prefix: str,
+    save_format: str = "flac",
 ) -> dict[str, Any]:
+    # Pick the right loader for the diffusion model based on its extension.
+    # .gguf → UnetLoaderGGUF (from the ComfyUI-GGUF custom node)
+    # .safetensors → UNETLoader (stock ComfyUI)
+    ext = Path(music_ckpt).suffix.lower()
+    loader_class = "UnetLoaderGGUF" if ext == ".gguf" else "UNETLoader"
+
+    # The text encoder is required by MiniMaxMusic3TextEncode; the node
+    # rejects an empty lyrics string on some builds so we substitute a
+    # placeholder marker when the user leaves it blank.
+    lyrics_input = lyrics.strip() or "[Instrumental]"
+
     return {
         "1": {
-            "class_type": "UnetLoaderGGUF",
-            "inputs": {"unet_name": music_ckpt},
+            "class_type": loader_class,
+            "inputs": (
+                {"unet_name": music_ckpt}
+                if loader_class == "UnetLoaderGGUF"
+                else {"unet_name": music_ckpt, "weight_dtype": "default"}
+            ),
         },
         "2": {
             "class_type": "CLIPLoader",
-            "inputs": {"clip_name": text_encoder, "type": "minimax_music"},
+            "inputs": {
+                "clip_name": text_encoder,
+                "type": "minimax",
+                "device": "default",
+            },
         },
         "3": {
             "class_type": "VAELoader",
             "inputs": {"vae_name": vae},
         },
         "4": {
-            "class_type": "MiniMaxMusicConditioning",
+            "class_type": "MiniMaxMusic3TextEncode",
             "inputs": {
                 "clip": ["2", 0],
-                "lyrics": lyrics,
-                "description": description,
-                "duration": duration_s,
+                "caption": description,
+                "lyrics": lyrics_input,
+                "seed": seed,
+                "max_duration": float(duration_s),
             },
         },
         "5": {
-            "class_type": "MiniMaxMusicConditioning",
-            "inputs": {
-                "clip": ["2", 0],
-                "lyrics": "",
-                "description": "silence, low quality, noise, distortion",
-                "duration": duration_s,
-            },
+            "class_type": "ConditioningZeroOut",
+            "inputs": {"conditioning": ["4", 0]},
         },
         "6": {
-            "class_type": "EmptyMusicLatent",
-            "inputs": {"duration": duration_s, "sample_rate": 32000, "batch_size": 1},
+            "class_type": "EmptyMiniMaxMusic3LatentAudio",
+            "inputs": {
+                "seconds": float(duration_s),
+                "batch_size": 1,
+            },
         },
         "7": {
             "class_type": "KSampler",
@@ -84,11 +120,11 @@ def _default_workflow(
             "inputs": {"samples": ["7", 0], "vae": ["3", 0]},
         },
         "9": {
-            "class_type": "SaveAudio",
+            "class_type": "SaveAudioAdvanced",
             "inputs": {
                 "audio": ["8", 0],
                 "filename_prefix": output_prefix,
-                "format": "wav",
+                "format": save_format,
             },
         },
     }
@@ -109,11 +145,11 @@ def build_workflow(
     vae: str,
     output_prefix: str,
 ) -> dict[str, Any]:
-    """Return a workflow dict, either the user's override or the default."""
+    """Return an API-format workflow dict — user override or the default."""
     override = settings.models_dir / "music" / "workflow.json"
     if override.exists():
         raw = override.read_text()
-        # allow simple string interpolation using $VAR-style tokens
+        # Allow simple string interpolation using $VAR-style tokens
         replacements = {
             "$LYRICS": json.dumps(lyrics)[1:-1],
             "$DESCRIPTION": json.dumps(description)[1:-1],
@@ -171,7 +207,12 @@ def discover_model_files() -> dict[str, str | None]:
     return {
         "music_ckpt": _pick(
             ["diffusion_models", ""],
-            ["MiniMax-Music*.gguf", "*minimax_music3_dit*.safetensors", "*Music*.gguf", "*.gguf"],
+            [
+                "*minimax_music3_dit*.safetensors",
+                "MiniMax-Music*.gguf",
+                "*Music*.gguf",
+                "*.gguf",
+            ],
         ),
         "text_encoder": _pick(
             ["text_encoders", ""],

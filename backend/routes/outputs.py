@@ -23,6 +23,20 @@ def get_output(record_id: str) -> dict:
     return rec.to_dict()
 
 
+_AUDIO_MIME = {
+    ".wav": "audio/wav",
+    ".flac": "audio/flac",
+    ".mp3": "audio/mpeg",
+    ".ogg": "audio/ogg",
+    ".opus": "audio/ogg",
+    ".m4a": "audio/mp4",
+}
+
+
+def _mime_for(path) -> str:
+    return _AUDIO_MIME.get(path.suffix.lower(), "application/octet-stream")
+
+
 @router.get("/{record_id}/audio")
 def get_audio(record_id: str):
     p = audio_path_for(record_id)
@@ -34,11 +48,11 @@ def get_audio(record_id: str):
             if abs_path.exists():
                 return FileResponse(
                     str(abs_path),
-                    media_type="audio/wav",
+                    media_type=_mime_for(abs_path),
                     filename=abs_path.name,
                 )
         raise HTTPException(status_code=404, detail="audio not found")
-    return FileResponse(str(p), media_type="audio/wav", filename=p.name)
+    return FileResponse(str(p), media_type=_mime_for(p), filename=p.name)
 
 
 @router.delete("/{record_id}")

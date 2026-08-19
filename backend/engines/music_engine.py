@@ -402,7 +402,10 @@ class ComfyEngine:
 
         out_dir = Path(settings.outputs_dir) / rec.id
         out_dir.mkdir(parents=True, exist_ok=True)
-        target = out_dir / f"{rec.id}.wav"
+        # Preserve whatever extension ComfyUI produced (flac / mp3 / wav)
+        src_name = audio_info.get("filename", "output.flac")
+        ext = Path(src_name).suffix or ".flac"
+        target = out_dir / f"{rec.id}{ext}"
         await self._download(audio_info, target)
 
         rec.audio_path = str(target.relative_to(settings.root))

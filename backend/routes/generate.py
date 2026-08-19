@@ -19,10 +19,10 @@ class GenerateBody(BaseModel):
     lyrics: str = ""
     duration: float = 30.0
     steps: int = 30
-    cfg: float = 4.0
+    cfg: float = 1.7   # MiniMax-Music-3 sweet spot per the official workflow
     seed: int | None = None
     sampler: str = "euler"
-    scheduler: str = "normal"
+    scheduler: str = "simple"
     tags: list[str] = []
     expanded_prompt: str | None = None
     llm_notes: str | None = None
